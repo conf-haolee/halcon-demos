@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>read_image (Image20250730184339644, 'C:/复检存图共享/P弹片20250801/Cam2/OK/20250731_190105_171.png')</l>
+<c></c>
+<l>gen_rectangle1 (ROI_0, 1614.06, 1028.69, 1694.67, 1153.61)</l>
+<l>reduce_domain(Image20250730184339644, ROI_0, ImageReduced)</l>
+<l>write_image(ImageReduced, 'bmp', 0,'D:/04 programing/00 halcon/常用Demo/111.bmp')</l>
+<c></c>
+<l>read_image (ImageReduced, 'D:/04 programing/00 halcon/常用Demo/111.bmp')</l>
+<c></c>
+<c></c>
+<c>****************** 图像增强 一灰度值变换 ****************</c>
+<c> </c>
+<c>* 灰度值变换，1.对比度增强 scale_image算子手动缩放图像值</c>
+<l>min_max_gray(ROI_0, ImageReduced, 0, Min, Max, Range)</l>
+<l>MultPara := 255/(Max - Min)</l>
+<l>scale_image(ImageReduced, ImageScaled, MultPara, (-1 * MultPara * Min))</l>
+<c></c>
+<c></c>
+<c>* 灰度值变换，2.对比度归一化 scale_image_max算子自动计算覆盖最大灰度范围 </c>
+<l>scale_image_max(ImageReduced, ImageScaleMax)</l>
+<c> </c>
+<c>* 灰度值变换，3. 指定灰度区间变换 scale_image_range算子将图像的灰度值从区间[Min,Max]扩展到[0,255]。</c>
+<l>scale_image_range(ImageScaleMax, ImageScaled1, 150, 200)</l>
+<c> </c>
+<c> ****************** 图像增强 二图像平滑 ****************</c>
+<c>  </c>
+<c>* 图像平滑，1.均值滤波 mean_image算子 线性平滑以卷积内的平均值替代。</c>
+<c>******均值滤波的优点是算法简单，计算速度较快，</c>
+<c>******缺点是在去噪的同时去除了很多细节部分，将图像变得模糊。</c>
+<l>mean_image(ImageReduced, ImageMean, 9, 9)</l>
+<c>   </c>
+<c>   </c>
+<c>* 图像平滑，2.中值滤波 median_image算子 非线性平滑以卷积内的中间值替代。</c>
+<c>****** 与均值滤波相比，中值滤波可消除图像中孤立的噪声点，又可产生较少的模糊。</c>
+<l>median_image(ImageReduced, ImageMedian, 'circle', 3, 'mirrored')</l>
+<c>   </c>
+<c>* 图像平滑，3.高斯滤波 median_image算子  用模板确定的邻域内像素的加权平均灰度值去替代模板中心像素点的值</c>
+<c>******* 适合消除高斯噪声，降低图像灰度的尖锐变化，抑制服从正态分布的噪声，</c>
+<c>******* 代价是图像变得模糊</c>
+<l>gauss_filter(ImageReduced, ImageGauss, 3)</l>
+<c>   </c>
+<c>****************** 图像增强 三傅里叶变换 ****************</c>
+<l>get_image_size(ImageReduced, Width, Height)</l>
+<c>* 获取一个低通滤波器</c>
+<l>* gen_lowpass(ImageLowpass, 0.1, 'none', 'dc_center', Width, Height)</l>
+<l>gen_highpass(ImageHighpass, 0.1, 'none', 'dc_center', Width, Height)</l>
+<l>* optimize_fft_speed(Width, Height, 'standard')</l>
+<l>fft_generic(ImageReduced, ImageFFT, 'to_freq', -1, 'sqrt', 'dc_center', 'complex')</l>
+<l>convol_fft(ImageFFT, ImageHighpass, ImageConvol)</l>
+<c></c>
+<l>fft_image_inv(ImageConvol, ImageFFTInv)</l>
+<l>threshold(ImageFFTInv, Region, 20, 255)</l>
+<c></c>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

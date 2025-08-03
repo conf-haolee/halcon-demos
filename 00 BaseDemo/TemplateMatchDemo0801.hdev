@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>* D:/P弹片VisionTrans0731/Cam1/OK/00-20250730_184339_644.png</l>
+<l>* D:/P弹片VisionTrans0731/Cam1/OK</l>
+<c>* 读取模板图像并绘制两个 ROI</c>
+<c></c>
+<c>* Step 1: 读取模板图像并设置窗口</c>
+<l>read_image (TemplateImage, 'D:/P弹片VisionTrans0731/Cam1/OK/00-20250730_184339_644.png')</l>
+<l>get_image_size(TemplateImage, Width, Height)</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (TemplateImage)</l>
+<c></c>
+<c>* Step 2: 绘制模板 ROI</c>
+<l>disp_message(WindowHandle, '请绘制模板匹配区域', 'window', 12, 12, 'black', 'true')</l>
+<l>draw_rectangle1 (WindowHandle, Row1_Model, Column1_Model, Row2_Model, Column2_Model)</l>
+<l>gen_rectangle1 (ROI_Model, Row1_Model, Column1_Model, Row2_Model, Column2_Model)</l>
+<l>reduce_domain (TemplateImage, ROI_Model, TemplateReduced)</l>
+<c></c>
+<c>* Step 3: 创建模板</c>
+<l>create_shape_model (TemplateReduced, 5, rad(-30), rad(60), rad(0.5), 'none', 'use_polarity', 'auto', 'auto', ModelID)</l>
+<c></c>
+<c>* Step 4: 绘制目标 ROI（相对模板区域）</c>
+<l>disp_message(WindowHandle, '请绘制目标ROI区域（与模板区域相关）', 'window', 12, 12, 'black', 'true')</l>
+<l>draw_rectangle1 (WindowHandle, Row1_Target, Column1_Target, Row2_Target, Column2_Target)</l>
+<l>gen_rectangle1 (ROI_Target, Row1_Target, Column1_Target, Row2_Target, Column2_Target)</l>
+<c></c>
+<c>* Step 5: 计算目标 ROI 相对于模板 ROI 的仿射变换</c>
+<l>vector_angle_to_rigid(((Row1_Model + Row2_Model)/2), ((Column1_Model + Column2_Model)/2), 0, </l>
+<l>                       ((Row1_Model + Row2_Model)/2), ((Column1_Model + Column2_Model)/2), 0, </l>
+<l>                       HomMat2D_ModelToTarget)</l>
+<c>                                            </c>
+<l>affine_trans_region (ROI_Target, ROI_Target_Relative, HomMat2D_ModelToTarget, 'false')</l>
+<c></c>
+<c>* Step 6: 遍历文件夹进行匹配</c>
+<l>list_image_files ('图像文件夹路径', 'default', [], ImageFiles)</l>
+<c></c>
+<l>for Index := 0 to |ImageFiles| - 1 by 1</l>
+<l>    read_image (SearchImage, ImageFiles[Index])</l>
+<l>    dev_display (SearchImage)</l>
+<c></c>
+<c>    * 模板匹配</c>
+<l>    find_shape_model(SearchImage, ModelID, rad(-30), rad(60), 0.6, 1, 0.5, 'least_squares', 0, 0.9, </l>
+<l>                      Row, Column, Angle, Score)</l>
+<c>    </c>
+<l>    if (|Row| &gt; 0)</l>
+<l>        for I := 0 to |Row| - 1</l>
+<c>            * 显示匹配区域</c>
+<l>            get_shape_model_contours (ModelContours, ModelID, 1)</l>
+<l>            hom_mat2d_identity (HomMat2D)</l>
+<l>            hom_mat2d_rotate (HomMat2D, Angle[I], 0, 0, HomMat2D)</l>
+<l>            hom_mat2d_translate (HomMat2D, Row[I], Column[I], HomMat2D)</l>
+<l>            affine_trans_contour_xld (ModelContours, TransContours, HomMat2D)</l>
+<l>            dev_set_color ('green')</l>
+<l>            dev_display (TransContours)</l>
+<c></c>
+<c>            * 仿射变换目标 ROI 到匹配图像上</c>
+<l>            vector_angle_to_rigid ((Row1_Model + Row2_Model)/2, (Column1_Model + Column2_Model)/2, 0, </l>
+<l>                                   Row[I], Column[I], Angle[I], </l>
+<l>                                   HomMat2D_Match)</l>
+<l>            affine_trans_region (ROI_Target_Relative, ROI_Target_Out, HomMat2D_Match, 'false')</l>
+<l>            dev_set_color ('red')</l>
+<l>            dev_display (ROI_Target_Out)</l>
+<c></c>
+<c>            * 抠图并显示</c>
+<l>            reduce_domain (SearchImage, ROI_Target_Out, ImageCrop)</l>
+<l>            dev_open_window (0, Width+50, Width/2, Height/2, 'black', CropWindowHandle)</l>
+<l>            dev_display (ImageCrop)</l>
+<l>        endfor</l>
+<l>    else</l>
+<l>        disp_message(WindowHandle, '未匹配到模板', 'window', 12, 12, 'red', 'true')</l>
+<l>    endif</l>
+<l>endfor</l>
+<c></c>
+<c>* 清除模板</c>
+<l>clear_shape_model (ModelID)</l>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>
